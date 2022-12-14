@@ -1,7 +1,7 @@
 # ESP32_C3_Network_Example
 Seeed Studio  Xiao ESP32-c3
 
-# MQTT
+## MQTT
 
 ```mermaid
 sequenceDiagram
@@ -39,4 +39,12 @@ sequenceDiagram
       note left of main: Wait for time
       main->>Arduino: delay()
     end
+```
+
+## Ping
+
+```mermaid
+flowchart LR
+    id1[XIAO ESP32C3]-- echo request -->id2[Server]
+    id2-- echo reply -->id1
 ```
