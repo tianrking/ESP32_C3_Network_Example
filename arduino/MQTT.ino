@@ -8,6 +8,7 @@
 // Libraries:
 //   MQTT 2.5.0 - https://github.com/256dpi/arduino-mqtt
 //   ArduinoJson 6.19.4 - https://github.com/bblanchon/ArduinoJson
+// 	https://github.com/Seeed-Studio/Seeed_Arduino_MultiGas
 
 ////////////////////////////////////////////////////////////////////////////////
 // Includes
@@ -20,6 +21,10 @@
 #include <MQTT.h>
 #include <ArduinoJson.h>
 
+#include <Multichannel_Gas_GMXXX.h>
+#include <Wire.h>
+GAS_GMXXX<TwoWire> gas;
+
 ////////////////////////////////////////////////////////////////////////////////
 // Constants
 
@@ -27,14 +32,10 @@
 // #define WIFI_TX_POWER					(WIFI_POWER_2dBm)											// Wi-Fi maximum transmitting power (wifi_power_t)
 // #define WIFI_PROTOCOL					(WIFI_PROTOCOL_11N)										// Wi-Fi protocol {WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR}
 
-static const char APPLICATION_NAME[] = "mqtts-pub-client";
-static const char GROUP_NAME[] = "test";
-static const char DEVICE_NAME[] = "xiao1234";
-
 static constexpr unsigned long INTERVAL = 60;												// [sec.]
 
-static const char WIFI_SSID[] = "XXXX";
-static const char WIFI_PASSPHRASE[] = "xxxxxxx";
+static const char WIFI_SSID[] = "wifi";
+static const char WIFI_PASSPHRASE[] = "pass";
 static constexpr uint32_t WIFI_CONNECT_TIMEOUT = 30000;							// [msec.]
 
 static const char TZ[] = "JST-9";
@@ -50,7 +51,7 @@ static time_t StartTime = 0;
 static WiFiClientSecure TcpClient;
 static MQTTClient MqttClient;
 
-static StaticJsonDocument<32> JsonDoc;	// https://arduinojson.org/v6/assistant
+static StaticJsonDocument<64> JsonDoc;	
 
 ////////////////////////////////////////////////////////////////////////////////
 // Certificates
@@ -178,6 +179,9 @@ void setup()
 	{
 		StartTime = time(nullptr);
 	}
+
+  gas.begin(Wire, 0x08); // use the hardware I2C
+
 }
 
 void loop()
@@ -215,11 +219,18 @@ void loop()
 
 			Serial.println("MQTT: Publish.");
 
-			String topic = String("dt/") + APPLICATION_NAME + "/" + GROUP_NAME + "/" + DEVICE_NAME + "/uptime";
+			String topic = "/xiao_data";
 
 			JsonDoc.clear();
-			JsonDoc["uptime"] = uptime;
-			JsonDoc["rssi"] = rssi;
+      // int val = gas.getGM102B();
+      JsonDoc["NO2"] = gas.getGM102B();
+      int val = gas.getGM302B();
+      JsonDoc["C2H5CH"] = gas.getGM302B();
+      val = gas.getGM502B();
+      JsonDoc["VOC"] =  gas.getGM502B();
+      val = gas.getGM702B();
+			JsonDoc["CO"] = gas.getGM702B();
+			
 			String payload;
 			serializeJson(JsonDoc, payload);
 			Serial.print("Payload=");
@@ -234,5 +245,5 @@ void loop()
 
 	Serial.println("Wait for time.");
 	const int sleepSec = StartTime == 0 ? 0 : INTERVAL - (time(nullptr) - StartTime) % INTERVAL;
-	delay(sleepSec * 1000);
+	delay(sleepSec * 10);
 }
